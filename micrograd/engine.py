@@ -4,6 +4,7 @@ class Value:
         self.data = data
         self._prev = set(children)
         self._op = _op
+        self.grad = 0.0
 
     def __add__(self, other):
         out = Value(self.data + other.data, (self, other), '+')
@@ -16,8 +17,5 @@ class Value:
     def __repr__(self):
         return f"Value(data={self.data})"
 
-    # def __repr__(self):
-
-print(Value(2.0) * Value(-3.0) + Value(10.0))
-res = Value(2.0) * Value(-3.0) + Value(10.0)
+res = (Value(3.0) + Value(-1.5)) * Value(4.0)
 print(f'{res.data}')
