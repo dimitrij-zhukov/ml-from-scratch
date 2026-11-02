@@ -1,3 +1,5 @@
+import math
+
 class Value:
 
     def __init__(self, data, children=(), _op=''):
@@ -9,18 +11,105 @@ class Value:
     def __add__(self, other):
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data + other.data, (self, other), '+')
+
+        def _backward():
+            self.grad += out.grad * 1
+            other.grad += out.grad * 1
+
+        out._backward = _backward
         return out
         
     def __mul__(self, other):
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data * other.data, (self, other), '*')
+
+        def _backward():
+            self.grad += out.grad * other.data
+            other.grad += out.grad * self.data
+        
+        out._backward = _backward
         return out
 
     def __neg__(self):
         return self * -1
 
+    def tanh(self):
+        out = Value((math.exp(2 * self.data) - 1) / (math.exp(2 * self.data) + 1), (self,), 'tanh')
+
+        def _backward():
+            self.grad += out.grad * (1 - math.tanh(self.data)**2)
+
+        out._backward = _backward
+        return out
+
     def __repr__(self):
         return f"Value(data={self.data})"
+
+
+
+x1 = Value(1)
+w1 = Value(0.5)
+x2 = Value(-2)
+w2 = Value(0)
+b = Value(-0.1137)
+
+x1w1 = x1 * w1
+x2w2 = x2 * w2
+s = x1w1 + x2w2
+n = s + b
+o = n.tanh()
+o.grad = 1.0
+
+
+o._backward()
+print(n.grad)
+
+n._backward()
+print(s.grad, b.grad)
+s._backward()
+print(x1w1.grad, x2w2.grad)
+x1w1._backward()
+print(x1.grad, w1.grad)
+x2w2._backward()
+print(x2.grad, w2.grad)
+
+"""
+print(n, o.data)
+
+x1.grad = (1 - math.tanh(n)**2) * 1 * 1 * w1.data
+w1.grad = (1 - math.tanh(n)**2) * 1 * 1 * x1.data
+x2.grad = (1 - math.tanh(n)**2) * 1 * 1 * w2.data
+w2.grad = (1 - math.tanh(n)**2) * 1 * 1 * x2.data
+b.grad = (1 - math.tanh(n)**2) * 1
+
+o.grad = 1
+n1.grad = 1 - math.tanh(n)**2
+x1w1.grad = (1 - math.tanh(n)**2) * 1 * 1
+x2w2.grad = (1 - math.tanh(n)**2) * 1 * 1
+
+print("my predcited value:", w1.grad)
+
+print(n1._backward)
+print(s._backward)
+
+h = 0.001
+x1 = Value(2)
+x2 = Value(0)
+w1 = Value(-3 + h)
+w2 = Value(1)
+b = Value(6.8813735870195432)
+
+x1w1 = x1 * w1
+x2w2 = x2 * w2
+s = x1w1 + x2w2
+n = s + b
+o2 = n.tanh()
+n = n.data
+print(n, o.data)
+
+print("do/dw1", (o2.data - o.data) / h)
+
+
 
 a = Value(3.0)
 b = Value(-4.0)
@@ -31,6 +120,22 @@ f = Value(-3)
 L = d * f
 
 print(f"{L.data}")
+
+h = 0.001
+a = Value(3.0)
+b = Value(-4.0)
+c = Value(0.5 + h)
+e = a + b
+d = e * c
+f = Value(-3)
+L2 = d * f
+
+res = (L2.data - L.data)
+fin = res / h
+
+print(f"{fin}")
+
+
 
 d.grad = -3
 f.grad = (3 + -4) * 0.5
@@ -49,3 +154,4 @@ d = e * c
 L = d * f
 
 print(f"{L.data}")
+"""
