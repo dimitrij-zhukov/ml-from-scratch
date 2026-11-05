@@ -8,13 +8,18 @@ class Value:
         self._op = _op
         self.grad = 0.0
 
+        def _backward():
+            return
+        self._backward = _backward
+        
+
     def __add__(self, other):
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data + other.data, (self, other), '+')
 
         def _backward():
-            self.grad += out.grad * 1
-            other.grad += out.grad * 1
+            self.grad = out.grad * 1
+            other.grad = out.grad * 1
 
         out._backward = _backward
         return out
@@ -24,8 +29,8 @@ class Value:
         out = Value(self.data * other.data, (self, other), '*')
 
         def _backward():
-            self.grad += out.grad * other.data
-            other.grad += out.grad * self.data
+            self.grad = out.grad * other.data
+            other.grad = out.grad * self.data
         
         out._backward = _backward
         return out
@@ -42,11 +47,28 @@ class Value:
         out._backward = _backward
         return out
 
+    def backward(self):
+        ls = []
+        visited = set()
+        def topo(v):
+            if v in visited:
+                return
+            for el in v._prev:
+                topo(el)
+            ls.append(v)
+            
+            visited.add(v)
+        topo(self)
+        self.grad = 1.0
+        rtopo = ls[::-1]
+        for val in rtopo:
+            val._backward()
+
     def __repr__(self):
         return f"Value(data={self.data})"
 
 
-
+"""
 x1 = Value(1)
 w1 = Value(0.5)
 x2 = Value(-2)
@@ -60,6 +82,24 @@ n = s + b
 o = n.tanh()
 o.grad = 1.0
 
+o.backward()
+
+print(n.grad)
+print(s.grad, b.grad)
+print(x1w1.grad, x2w2.grad)
+print(x1.grad, w1.grad)
+print(x2.grad, w2.grad)
+"""
+
+a = Value(2.0); b = Value(-1.0); d = Value(3.0)
+c = a + b
+g = c * d
+f = g + c
+f.backward()
+
+print(a.grad)
+
+"""
 
 o._backward()
 print(n.grad)
@@ -73,7 +113,9 @@ print(x1.grad, w1.grad)
 x2w2._backward()
 print(x2.grad, w2.grad)
 
-"""
+print(x1w1._prev)
+
+
 print(n, o.data)
 
 x1.grad = (1 - math.tanh(n)**2) * 1 * 1 * w1.data
