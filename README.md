@@ -7,15 +7,15 @@ Neural networks built from first principles, step by step.
 ### Week 1 (Nov 2–8, 2026): micrograd engine
 
 **What I built**
-I built a Value class, which supports the following operators: +, *, -, pow / **, e^x and tanh, working in all different kinds of configurations (with fallback functions in case of reverse order or a variable that isn't a Value class). 
-The Value class also has integrated backpropagation in case the backward() function (topologically sorted) works backward from the node it is applied on, iterating through the nodes, defining their gradients, until it reaches the leaves and defines their gradients, updating everything in case it gets affected several times.
+I built a Value class, which supports the following operators: +, *, -, pow / **, /, e^x and tanh, working in all different kinds of configurations (with fallback functions in case of reverse order or a variable that isn't a Value class). 
+The backward() function sets self.grad = 1, applies a topological sort to the neuron's nodes and leafs and then calls _backward() in reverse order for every node, setting the gradients.
 
 **Why it works**
-The _backward() function of the nodes / operators assigns values to the gradients to the children of the operator. The backward() function needs a topological sort, because only in that case it can iterate through all nodes truly backwards, correctly. The _backward() function uses += instead of =, because the gradients of nodes and leaves can be changed several times, in case they are used several times in other operations.
+The _backward() function of the nodes / operators assigns values to the gradients to the children of the operator. It works by applying the chain rule, multiplying the derivative of the parent function by the local derivative in respect to the variable. The backward() function needs a topological sort, because only when all leafs and children nodes of a parent node have provided their value can the gradient of the parent node be calculated. The _backward() function uses += instead of =, because the gradients of nodes and leaves can be changed several times, in case they are used several times in other operations.
 
 **Bugs and how I found them**
-1. The visited-Bug: Because I didn't remove already visited nodes to the pool of already visited nodes, it added them to the list several times, upscaling the gradients uncorrectly. I found it by predicting the values analytically and comparing them to my outputed values, seeing the error and finding the fix by adding the visited list.
-2. The __pow__-Bug: Instead of applying the power rule in the _backward() function, I exponentiated self.grad by other.data, which isn't how it works. The results deviated from the predictions (which I mistakenly didn't do, because I was lazy), but in the end I found the bug, applied the power rule and also remove the other.grad +=, because only self.grad is an actual gradient.
+1. The visited-Bug: Because I didn’t add the nodes to a visited set of already visited nodes, it added them to the list several times, upscaling the gradients incorrectly. I found it by predicting the values analytically and comparing them to my output values, seeing the error and finding the fix by adding the visited list.
+2. The __pow__-Bug: Instead of applying the power rule in the _backward() function, I exponentiated self.grad by other.data, which isn't how it works. Because I didn't predict the actual value mathematically, the output result didn't appear suspicious. Only the prediction for the easiest case exposed the mistake, such that I corrected the method, applying the power rule instead of potentiating out.grad and also removed other.grad +=, because the exponent shouldn't be touched.
 
 **Next**
-Next week I am planning to implement PyTorch capabilities and dive a bit into Multi-Layer-Perceptrons. I'm already very excited!
+Next week I am planning to compare my engine with PyTorch and dive a bit into Multi-Layer-Perceptrons. I'm already very excited!
