@@ -18,31 +18,69 @@ class Value:
         out = Value(self.data + other.data, (self, other), '+')
 
         def _backward():
-            self.grad = out.grad * 1
-            other.grad = out.grad * 1
+            self.grad += out.grad * 1
+            other.grad += out.grad * 1
 
         out._backward = _backward
         return out
+
+    def __radd__(self, other):
+        return self + other
         
     def __mul__(self, other):
         other = other if isinstance(other, Value) else Value(other)
         out = Value(self.data * other.data, (self, other), '*')
 
         def _backward():
-            self.grad = out.grad * other.data
-            other.grad = out.grad * self.data
+            self.grad += out.grad * other.data
+            other.grad += out.grad * self.data
         
         out._backward = _backward
         return out
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __pow__(self, other):
+        other = other if isinstance(other, Value) else Value(other)
+        out = Value(self.data ** other.data, (self, other), '**')
+
+        def _backward():
+            self.grad += out.grad * (other.data * (self.data ** (other.data - 1)))
+
+        out._backward = _backward
+        return out
+
+    def exp(self):
+        x = self.data
+        out = Value(math.exp(x), (self, ), 'exp')
+
+        def _backward():
+            self.grad += out.grad * out.data
+
+        out._backward = _backward
+        return out
+
+    def __truediv__(self, other):
+        return self * (other ** -1)
+
+    def __rtruediv__(self, other):
+        return (self ** -1) * other
+
+    def __sub__(self, other):
+        return self + -(other)
+
+    def __rsub__(self, other):
+            return -(self) + other
 
     def __neg__(self):
         return self * -1
 
     def tanh(self):
-        out = Value((math.exp(2 * self.data) - 1) / (math.exp(2 * self.data) + 1), (self,), 'tanh')
+        out = Value(math.tanh(self.data), (self,), 'tanh')
 
         def _backward():
-            self.grad += out.grad * (1 - math.tanh(self.data)**2)
+            self.grad += out.grad * (1 - out.data**2)
 
         out._backward = _backward
         return out
@@ -89,7 +127,7 @@ print(s.grad, b.grad)
 print(x1w1.grad, x2w2.grad)
 print(x1.grad, w1.grad)
 print(x2.grad, w2.grad)
-"""
+
 
 a = Value(2.0); b = Value(-1.0); d = Value(3.0)
 c = a + b
@@ -98,6 +136,16 @@ f = g + c
 f.backward()
 
 print(a.grad)
+
+"""
+
+n = Value(0.8)
+o = n.tanh()
+
+o.backward()
+print(o, n.grad)
+
+
 
 """
 
