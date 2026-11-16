@@ -28,23 +28,24 @@ I built the whole nn.py consisting of the
 1. Neuron Class: Made out of randoms weights (paired with the input values) and one random bias, meaning n = w1 * x1 + w2 * x2 + ... + b. It outputs a value of tanh(n) and return it's parameters.
 2. Layer Class: Made out of a certain (nout) amount of Neurons, returns a list (or singular value if it's only 1 Neuron) of the Neurons outputs. It also can return the parameters of all the Neurons it consists of.
 3. MLP Class: Made out of several (len(nouts)) Layer classes, it iterates through the layers, inputing the outputs of the last layer into the next once called, return the last layers value(s). It also can return the parameters of all the Layers it consists of, so also out of all the Neurons.
-I also compared the functionality of engine.py to PyTorch, it was very similar, through pytorch doesn't automatically determine the gradient of leafs.
+I also compared the functionality of engine.py to PyTorch, it was very similar, although pytorch doesn't store the grad values of the non-leaf nodes after running backward() on them, to safe memory, so we have to x.retain_grad(). But it *also* doesn't automatically store the grads of the leafs, also to store memory, so for them we have to set x.requires_grad = True.
 
 ### How it works
-Nin of the next layer has to be Nout of the layer before, because the outputs of all the Neurons have to be considered by the Neurons in the next layer. I don't know whether that has to always hold true, but for such simple MLPs it makes great sense.
-You can count the amount of parameters by adding up all parameters of each layer. The parameters of every layer can be described as amount of neurons * (amount weights + 1 bias). So for example for: MLP(3, [4, 4, 1]), it's 4 * (3 + 1) + (4 * 4 +1) + 1 * (4 + 1) = 41
+Nin of the next layer has to be Nout of the layer before, because the outputs of all the Neurons have to be considered by the Neurons in the next layer.
+You can count the amount of parameters by adding up all parameters of each layer. The parameters of every layer can be described as amount of neurons * (amount weights + 1 bias). So for example for: MLP(3, [4, 4, 1]), it's 4 * (3 + 1) + 4 * (4 +1) + 1 * (4 + 1) = 41
 
 ### Training
 To train the neural net the following steps have to be done:
 1. determine a data set for the input values and for the desired output values
 2. determine the loss in respect to the predicted value and desired values, performing a forward pass
-3. set p.grad to 0 (because otherwise you could very well overshoot, such that the value oscillates between negative and positive) and perform a backward pass
+3. set p.grad to 0 (because otherwise we would add up gradients from different values of the function, e. g. resulting in x.grad = 3 * previous g after three runs, making the step size significantly bigger every time) and perform a backward pass
 4. Change p.data in the opposite direction to the loss function (so -lr to *minimize* loss), with a well thought through step size
 (5. iterate a bunch of times)
 If the lr is too big, we oscillate, if it's too small we don't get close enough fast enough to a small loss.
 
 ### Bug / surprise
-I counted the amount of p.grad = 0.0 with a dataset of "saturated" neurons, before actually doing the backward pass, setting all parameters to be 0.0. After actually doing the backward pass, only if and if all neurons were saturated, the first layer (16 parameters) were 0.0, so resistant to learning. It also taught me that one very big data entry, out of the ordinary, could freeze up a whole layer, complicating the training process very significantly.
+I counted the amount of p.grad = 0.0 with a dataset of "saturated" neurons, before actually doing the backward pass, setting all parameters to be 0.0, because they were initiatlly set to 0.0 and if I never do a backward pass they stay that way. After actually doing the backward pass, only when the first layer was saturated (meaning that math.tanh(n), due to the hight input values, outputs 1.0 as the closest representable float), the first layer (16 parameters) were 0.0, so resistant to learning. It also taught me that one very big data entry, out of the ordinary, could freeze up a part / example of the data set, decreasing the amount of times a satisfying amount of loss is reached after several runs.
+The grad of a parameter is the *sum* of the contributions of all examples, so all the contributions have to be 0.0 themselves, so every example frozen up, for the parameter's grad to actually be 0.0.
 
 ### Next
 makemore for medical texts
