@@ -25,7 +25,7 @@ P = N.float() / N.float().sum(1, keepdim=True)
 
 log_likelihood = 0.0
 n = 0
-for w in ["anrejq"]:
+for w in ["andrejq"]:
     chs = ['.'] + list(w) + ['.']
     for ch1, ch2 in zip(chs, chs[1:]):
         ix1 = stoi[ch1]
