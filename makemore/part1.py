@@ -9,6 +9,8 @@ chars = sorted(list(set(''.join(words))))
 stoi = {s:i+1 for i, s in enumerate(chars)}
 stoi['.'] = 0
 
+print(stoi)
+
 itos = {i:s for s, i in stoi.items()}
 
 for w in words:
@@ -19,7 +21,7 @@ for w in words:
 
         N[ix1, ix2] += 1
 
-N = N + 1
+N += 1
 
 P = N.float() / N.float().sum(1, keepdim=True)
 
@@ -40,12 +42,10 @@ for w in ["andrejq"]:
 nll = -log_likelihood
 norm = nll / n
 
-print(norm)
-
 g = torch.Generator().manual_seed(2147483647)
 
 ws = []
-for _ in range(10000):
+for _ in range(10):
     ix = 0
     out = []
     while True:
@@ -59,11 +59,4 @@ for _ in range(10000):
     l = ''.join(out)
     ws.append(l)
 
-amount = 0
-
-for w in ws:
-    for ch in w:
-        amount += 1
-    amount -= 1
-
-print(amount / len(ws))
+print(ws)
