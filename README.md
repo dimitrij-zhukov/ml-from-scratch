@@ -49,3 +49,22 @@ The grad of a parameter is the *sum* of the contributions of all examples, so al
 
 ### Next
 makemore for medical texts
+
+## Week 3 (16–20 Nov)
+
+### What I built and why it works
+I started and finished building makemore 1 myself. `part1.py` generates names from the probability distribution of bigrams, which is calculated directly from the counts, independent of any loss function.
+
+`part2.py` contains a one-layer "neural net": the one-hot encoded inputs `xs` are multiplied by the weight matrix `W` (randomly initialized), the resulting logits are exponentiated and interpreted as counts, normalized into probabilities, and the negative log likelihood is calculated as the loss. Calling `backward()` on the loss gives the gradients, and the weights are updated by subtracting the learning rate (which is relatively big) times the gradients. This training loop is repeated until the loss gets close to the loss of the counting approach. It cannot go below it: the counting frequencies are already optimal on the training data (maximum likelihood), and the net cannot represent anything more than that.
+
+Both approaches use smoothing: the counting approach adds fake counts to `N`, the neural net adds a regularization term `(W**2).mean()` to the loss, which pulls `W` towards zero and acts like smoothing.
+
+### How I tested my explanation
+In Week 2, one of my training examples (10^12) often kept the loss above 0.1, and I explained it with the first layer being frozen for that example (tanh saturates, the gradient is exactly 0). To test this, I replaced 10^12 with 0.5 and trained both versions from 20 random starts each (learning rate 0.05, 50 steps, success = loss < 0.1). I predicted 20/20 for 0.5 and got 20/20, compared to 16/20 with 10^12. One successful run would have proven nothing, since about 2/3 of all runs succeed anyway; a check only counts if the opposite hypothesis would predict a different result.
+
+### Bugs I encountered along the way
+**Broadcasting error:** While normalizing the bigram counts, I forgot `keepdim=True` in `N.sum(1)`. The row sums were then broadcast as a row instead of a column, so every column was divided by the wrong sum, without any error message. The check `P.sum() == 27` could not reveal it, because in `N` the row sums equal the column sums: every character has exactly one predecessor and one successor, since `.` starts and ends every name. Checking a single row (`P[0].sum()`) would have shown it.
+
+**Generator trap:** After training, `part2.py` generated different names than `part1.py`, even though the losses were very close and I used the same seed. I had already used the generator to initialize `W`, so it produced different random numbers. Re-creating the generator with the same seed right before sampling fixed it.
+
+**Row-sum errors:** A uniform distribution built from ones had row sums of 27 instead of 1, so every probability was 1 and the loss was log(1) = 0, which looked perfect but was just an invalid distribution. Later, I added the smoothing counts only to the numerator, which made the training loss seem to drop. Lesson: after building any `P`, check `P.sum(1)` immediately; a training loss of 0, or one below the counting model, is always a bug.
